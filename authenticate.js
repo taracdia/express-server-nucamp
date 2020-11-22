@@ -1,7 +1,6 @@
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
 const User = require("./models/user");
-
 const JwtStrategy = require("passport-jwt").Strategy;
 const ExtractJwt = require("passport-jwt").ExtractJwt;
 const jwt = require("jsonwebtoken");
@@ -9,11 +8,13 @@ const jwt = require("jsonwebtoken");
 const config = require("./config.js");
 
 exports.local = passport.use(new LocalStrategy(User.authenticate()));
+
 passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 
-exports.getToken = function (user) {
-    return jwt.sign(user, config.secretKey, { expiresIn: 3600 });
+
+exports.getToken = user => {
+    return jwt.sign(user, config.secretKey, {expiresIn: 3600});
 };
 
 const opts = {};
@@ -25,8 +26,8 @@ exports.jwtPassport = passport.use(
         opts,
         (jwt_payload, done) => {
             console.log("JWT payload: ", jwt_payload);
-            User.findOne({ _id: jwt_payload._id }, (err, user) => {
-                if (err) {
+            User.findOne({_id: jwt_payload._id}, (err, user) => {
+                if (err){
                     return done(err, false);
                 } else if (user) {
                     return done(null, user);
@@ -38,4 +39,14 @@ exports.jwtPassport = passport.use(
     )
 );
 
-exports.verifyUser = passport.authenticate("jwt", {session: false});
+exports.verifyUser = passport.authenticate("jwt", {session: false})
+
+exports.verifyAdmin = (req, res, next) => {
+    if(req.user.admin){
+        return next();
+    } else {
+        const err = new Error(`You are not authorized`);
+        err.statusCode = 403;
+        return next(err);
+    }
+};
